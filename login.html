@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BDJR</title>
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/utilities.css">
+</head>
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+        <main class="main-content flex items-center justify-center" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+            
+            <div class="card" style="width: 100%; max-width: 400px; margin: auto;">
+                <div class="text-center mb-4">
+                    <h1 class="page-title">Iniciar Sesión</h1>
+                    <p class="text-secondary">Accede a tu panel de control</p>
+                </div>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full mb-2">Entrar</button>
+                    <div class="text-center text-sm">
+                        <a href="#" class="text-primary">¿Olvidaste tu contraseña?</a>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+    </div>
+    <script type="module" src="assets/js/app.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Simulación de Login exitosa. Redirigiendo...');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

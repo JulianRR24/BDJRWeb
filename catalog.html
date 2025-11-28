@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo - BDJR</title>
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/utilities.css">
+</head>
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Catálogo de Soluciones</h1>
+                    <p class="text-secondary">Herramientas y servicios para escalar tu negocio o impulsar tu crecimiento personal.</p>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Buscar..." class="form-input" style="width: 200px;">
+                    <select class="form-select" style="width: 150px;">
+                        <option>Todos</option>
+                        <option>Software</option>
+                        <option>Infraestructura</option>
+                    </select>
+                </div>
+            </header>
+
+            <div id="product-grid" class="grid grid-3">
+                <!-- Products injected by JS -->
+            </div>
+
+        </main>
+    </div>
+    <script type="module" src="assets/js/app.js"></script>
+    <script type="module">
+        import { products } from './assets/js/products.js';
+        import { formatCurrency } from './assets/js/utils.js';
+        import { addToCart } from './assets/js/cart.js';
+
+        const grid = document.getElementById('product-grid');
+        
+        grid.innerHTML = products.map(product => `
+            <div class="card">
+                <a href="product.html?id=${product.id}" class="product-card-image-container">
+                    <div class="product-card-image-bg" style="background-image: url('${product.images[0]}')"></div>
+                    <img src="${product.images[0]}" alt="${product.name}" class="product-card-image">
+                </a>
+                
+                <div class="product-card-category">
+                    <span class="badge badge-primary">${product.category}</span>
+                </div>
+                
+                <a href="product.html?id=${product.id}">
+                    <h3 class="card-title mb-2 hover:text-primary transition-colors">${product.name}</h3>
+                </a>
+                
+                <p class="product-card-description">${product.description}</p>
+                
+                <div class="product-card-footer">
+                    <div class="flex flex-col items-center" style="gap: 6px;">
+                        <span class="product-price" style="font-size: 1.1rem;">${formatCurrency(product.price)}</span>
+                        ${product.comparePrice ? `<span class="text-muted" style="text-decoration: line-through; font-size: 0.7rem;">${formatCurrency(product.comparePrice)}</span>` : ''}
+                    </div>
+                    <button class="btn btn-primary btn-sm add-to-cart" data-id="${product.id}">
+                        Añadir
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Event Delegation for Add to Cart
+        grid.addEventListener('click', (e) => {
+            if (e.target.closest('.add-to-cart')) {
+                const btn = e.target.closest('.add-to-cart');
+                const id = parseInt(btn.dataset.id);
+                addToCart(id);
+                
+                // Visual feedback
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ Añadido';
+                btn.classList.add('btn-success');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito - BDJR</title>
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/utilities.css">
+</head>
+<body>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Tu Carrito</h1>
+                    <p class="text-secondary">Revisa tus soluciones seleccionadas.</p>
+                </div>
+            </header>
+
+            <div class="grid grid-2" style="grid-template-columns: 2fr 1fr;">
+                <!-- Cart Items -->
+                <div class="card">
+                    <div id="cart-items">
+                        <!-- Injected by JS -->
+                        <div class="text-center text-muted py-4">Cargando carrito...</div>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="card h-fit">
+                    <h2 class="card-title mb-4">Resumen</h2>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-secondary">Subtotal</span>
+                        <span id="cart-subtotal">$0.00</span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span class="text-secondary">Impuestos (IVA 19%)</span>
+                        <span id="cart-tax">$0.00</span>
+                    </div>
+                    <div class="flex justify-between mb-4 pt-4 border-t border-gray-700 font-bold text-lg">
+                        <span>Total</span>
+                        <span id="cart-total">$0.00</span>
+                    </div>
+                    
+                    <!-- PayU Button -->
+                    <div class="text-center mt-4">
+                        <a href="https://biz.payulatam.com/B0f9701CE995DA2" target="_blank" class="block w-full mb-4">
+                            <img src="https://ecommerce.payulatam.com/img-secure-2015/boton_pagar_grande.png" alt="Pagar con PayU" style="width: 100%; max-width: 200px; margin: 0 auto;">
+                        </a>
+                        
+                        <!-- Mercado Pago Button -->
+                        <a href="https://link.mercadopago.com.co/capacitacionulp" target="_blank" class="btn btn-primary w-full block" style="background-color: #009EE3; border-color: #009EE3; color: white; padding: 12px; border-radius: 4px; font-weight: bold; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span>Pagar con Mercado Pago</span>
+                        </a>
+
+                        <p class="text-xs text-muted mt-4">Pagos seguros procesados por PayU y Mercado Pago</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script type="module" src="assets/js/app.js"></script>
+    <script type="module">
+        import { getCart, updateQuantity, removeFromCart, getCartTotal } from './assets/js/cart.js';
+        import { products } from './assets/js/products.js';
+        import { formatCurrency } from './assets/js/utils.js';
+
+        const renderCart = () => {
+            const cart = getCart();
+            const container = document.getElementById('cart-items');
+            
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-2">🛒</div>
+                        <p class="text-muted">Tu carrito está vacío.</p>
+                        <a href="catalog.html" class="btn btn-primary mt-4">Ir al Catálogo</a>
+                    </div>
+                `;
+                updateTotals();
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cart.map(item => {
+                            const product = products.find(p => p.id === item.productId);
+                            if (!product) return '';
+                            return `
+                                <tr>
+                                    <td>
+                                        <div class="font-bold">${product.name}</div>
+                                        <div class="text-xs text-secondary">${product.category}</div>
+                                    </td>
+                                    <td>${formatCurrency(product.price)}</td>
+                                    <td>
+                                        <input type="number" min="1" value="${item.quantity}" 
+                                            class="form-input qty-input" 
+                                            data-id="${item.productId}" 
+                                            style="width: 60px; padding: 4px;">
+                                    </td>
+                                    <td>${formatCurrency(product.price * item.quantity)}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger remove-btn" data-id="${item.productId}">×</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            updateTotals();
+        };
+
+        const updateTotals = () => {
+            const subtotal = getCartTotal();
+            const tax = subtotal * 0.19;
+            const total = subtotal + tax;
+
+            document.getElementById('cart-subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('cart-tax').textContent = formatCurrency(tax);
+            document.getElementById('cart-total').textContent = formatCurrency(total);
+        };
+
+        // Event Listeners
+        document.getElementById('cart-items').addEventListener('change', (e) => {
+            if (e.target.classList.contains('qty-input')) {
+                const id = parseInt(e.target.dataset.id);
+                const qty = parseInt(e.target.value);
+                updateQuantity(id, qty);
+                renderCart();
+            }
+        });
+
+        document.getElementById('cart-items').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-btn')) {
+                const id = parseInt(e.target.dataset.id);
+                removeFromCart(id);
+                renderCart();
+            }
+        });
+
+        renderCart();
+    </script>
+</body>
+</html>
