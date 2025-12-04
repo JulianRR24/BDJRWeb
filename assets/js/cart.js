@@ -1,66 +1,69 @@
-import { products } from './products.js';
+// assets/js/cart.js
 
-const CART_KEY = 'tech_startup_cart';
+export const cart = {
+    items: [],
 
-export const getCart = () => {
-    const cart = localStorage.getItem(CART_KEY);
-    return cart ? JSON.parse(cart) : [];
-};
-
-export const addToCart = (productId) => {
-    const cart = getCart();
-    const existingItem = cart.find(item => item.productId === productId);
-
-    if (existingItem) {
-        existingItem.quantity += 1;
-    } else {
-        cart.push({ productId, quantity: 1 });
-    }
-
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    updateCartCount();
-};
-
-export const removeFromCart = (productId) => {
-    let cart = getCart();
-    cart = cart.filter(item => item.productId !== productId);
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    updateCartCount();
-};
-
-export const updateQuantity = (productId, quantity) => {
-    const cart = getCart();
-    const item = cart.find(item => item.productId === productId);
-    if (item) {
-        item.quantity = parseInt(quantity);
-        if (item.quantity <= 0) {
-            removeFromCart(productId);
-            return;
+    init() {
+        const storedCart = localStorage.getItem('cart');
+        if (storedCart) {
+            this.items = JSON.parse(storedCart);
         }
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
-        updateCartCount();
+        this.updateUI();
+    },
+
+    add(product) {
+        const existingItem = this.items.find(item => item.id === product.id);
+        if (existingItem) {
+            existingItem.quantity++;
+        } else {
+            this.items.push({ ...product, quantity: 1 });
+        }
+        this.save();
+        this.updateUI();
+        alert('Producto agregado al carrito');
+    },
+
+    remove(productId) {
+        this.items = this.items.filter(item => item.id !== productId);
+        this.save();
+        this.updateUI();
+    },
+
+    updateQuantity(productId, quantity) {
+        const item = this.items.find(item => item.id === productId);
+        if (item) {
+            item.quantity = parseInt(quantity);
+            if (item.quantity <= 0) {
+                this.remove(productId);
+            } else {
+                this.save();
+                this.updateUI();
+            }
+        }
+    },
+
+    clear() {
+        this.items = [];
+        this.save();
+        this.updateUI();
+    },
+
+    save() {
+        localStorage.setItem('cart', JSON.stringify(this.items));
+    },
+
+    getTotal() {
+        return this.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    },
+
+    updateUI() {
+        // Update cart count badge if it exists
+        const cartCount = document.getElementById('cart-count');
+        if (cartCount) {
+            const count = this.items.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.textContent = count;
+        }
     }
 };
 
-export const clearCart = () => {
-    localStorage.removeItem(CART_KEY);
-    updateCartCount();
-};
-
-export const getCartTotal = () => {
-    const cart = getCart();
-    return cart.reduce((total, item) => {
-        const product = products.find(p => p.id === item.productId);
-        return total + (product ? product.price * item.quantity : 0);
-    }, 0);
-};
-
-export const updateCartCount = () => {
-    const cart = getCart();
-    const count = cart.reduce((acc, item) => acc + item.quantity, 0);
-    const badge = document.getElementById('cart-count');
-    if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'flex' : 'none';
-    }
-};
+cart.init();

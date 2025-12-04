@@ -66,15 +66,18 @@
     </div>
     <script type="module" src="assets/js/app.js"></script>
     <script type="module">
-        import { getCart, updateQuantity, removeFromCart, getCartTotal } from './assets/js/cart.js';
-        import { products } from './assets/js/products.js';
-        import { formatCurrency } from './assets/js/utils.js';
+        import { cart } from './assets/js/cart.js';
+        import { apiRequest } from './assets/js/api.js';
+        import { isAuthenticated, getCurrentUser } from './assets/js/auth.js';
+
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(amount);
+        };
 
         const renderCart = () => {
-            const cart = getCart();
             const container = document.getElementById('cart-items');
             
-            if (cart.length === 0) {
+            if (cart.items.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-8">
                         <div class="text-4xl mb-2">🛒</div>
@@ -98,38 +101,37 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${cart.map(item => {
-                            const product = products.find(p => p.id === item.productId);
-                            if (!product) return '';
-                            return `
-                                <tr>
-                                    <td>
-                                        <div class="font-bold">${product.name}</div>
-                                        <div class="text-xs text-secondary">${product.category}</div>
-                                    </td>
-                                    <td>${formatCurrency(product.price)}</td>
-                                    <td>
-                                        <input type="number" min="1" value="${item.quantity}" 
-                                            class="form-input qty-input" 
-                                            data-id="${item.productId}" 
-                                            style="width: 60px; padding: 4px;">
-                                    </td>
-                                    <td>${formatCurrency(product.price * item.quantity)}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-danger remove-btn" data-id="${item.productId}">×</button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
+                        ${cart.items.map(item => `
+                            <tr>
+                                <td>
+                                    <div class="font-bold">${item.name}</div>
+                                    <div class="text-xs text-secondary">${item.category || ''}</div>
+                                </td>
+                                <td>${formatCurrency(item.price)}</td>
+                                <td>
+                                    <input type="number" min="1" value="${item.quantity}" 
+                                        class="form-input qty-input" 
+                                        data-id="${item.id}" 
+                                        style="width: 60px; padding: 4px;">
+                                </td>
+                                <td>${formatCurrency(item.price * item.quantity)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger remove-btn" data-id="${item.id}">×</button>
+                                </td>
+                            </tr>
+                        `).join('')}
                     </tbody>
                 </table>
+                <div class="mt-4 text-right">
+                    <button id="checkout-btn" class="btn btn-success">Finalizar Compra</button>
+                </div>
             `;
             
             updateTotals();
         };
 
         const updateTotals = () => {
-            const subtotal = getCartTotal();
+            const subtotal = cart.getTotal();
             const tax = subtotal * 0.19;
             const total = subtotal + tax;
 
@@ -141,18 +143,53 @@
         // Event Listeners
         document.getElementById('cart-items').addEventListener('change', (e) => {
             if (e.target.classList.contains('qty-input')) {
-                const id = parseInt(e.target.dataset.id);
+                const id = e.target.dataset.id; // ID is string (UUID)
                 const qty = parseInt(e.target.value);
-                updateQuantity(id, qty);
+                cart.updateQuantity(id, qty);
                 renderCart();
             }
         });
 
-        document.getElementById('cart-items').addEventListener('click', (e) => {
+        document.getElementById('cart-items').addEventListener('click', async (e) => {
             if (e.target.classList.contains('remove-btn')) {
-                const id = parseInt(e.target.dataset.id);
-                removeFromCart(id);
+                const id = e.target.dataset.id;
+                cart.remove(id);
                 renderCart();
+            }
+            
+            if (e.target.id === 'checkout-btn') {
+                console.log('Auth State:', isAuthenticated(), getCurrentUser()); // Debug
+                
+                if (!isAuthenticated()) {
+                    alert('Debes iniciar sesión para comprar.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const user = getCurrentUser();
+                const total = cart.getTotal() * 1.19; // Including tax
+
+                const orderData = {
+                    user_id: user.id,
+                    total_amount: total,
+                    shipping_address: "Dirección de prueba", // In a real app, ask for this
+                    items: cart.items
+                };
+
+                try {
+                    e.target.textContent = 'Procesando...';
+                    e.target.disabled = true;
+                    
+                    await apiRequest('orders.php', 'POST', orderData);
+                    
+                    alert('¡Pedido realizado con éxito!');
+                    cart.clear();
+                    window.location.href = 'dashboard.html'; // Redirect to dashboard
+                } catch (error) {
+                    alert('Error al procesar el pedido: ' + error.message);
+                    e.target.textContent = 'Finalizar Compra';
+                    e.target.disabled = false;
+                }
             }
         });
 

@@ -1,4 +1,4 @@
-import { updateCartCount } from './cart.js';
+import { cart } from './cart.js';
 
 // Sidebar Navigation Structure
 const menuItems = [
@@ -9,7 +9,7 @@ const menuItems = [
         { label: 'Contact', icon: '✉️', link: 'contact.html' },
     ]},
     { title: 'Account', id: 'account', items: [
-        { label: 'Profile', icon: '👤', link: 'login.html' },
+        { label: 'Profile', icon: '👤', link: 'login.html' }, // Will be updated dynamically
         { label: 'Settings', icon: '⚙️', link: 'settings.html' },
     ]},
     { title: 'Basics (Academic)', id: 'basics', items: [
@@ -105,6 +105,28 @@ const renderSidebar = () => {
             }
         });
     }
+
+    // Update Auth Links
+    import('./auth.js').then(({ isAuthenticated, getCurrentUser, logout }) => {
+        if (isAuthenticated()) {
+            const user = getCurrentUser();
+            const profileLinks = document.querySelectorAll('a[href="login.html"]');
+            profileLinks.forEach(link => {
+                link.href = 'dashboard.html';
+                link.innerHTML = `<span>👤</span><span>Mi Cuenta</span>`;
+            });
+            
+            // Add Logout Button to Sidebar Footer
+            const footer = document.querySelector('.sidebar-footer');
+            if (footer) {
+                const logoutBtn = document.createElement('button');
+                logoutBtn.className = 'btn btn-sm btn-outline-danger w-full mt-2';
+                logoutBtn.textContent = 'Cerrar Sesión';
+                logoutBtn.onclick = logout;
+                footer.insertBefore(logoutBtn, footer.firstChild);
+            }
+        }
+    });
 };
 
 // Expose toggle function globally
@@ -145,7 +167,7 @@ const renderFloatingActions = () => {
 document.addEventListener('DOMContentLoaded', () => {
     renderSidebar();
     renderFloatingActions();
-    updateCartCount();
+    cart.updateUI();
 
     // Init Theme
     const savedTheme = localStorage.getItem('theme') || 'dark';

@@ -1,7 +1,7 @@
 export const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('es-CO', {
         style: 'currency',
-        currency: 'USD'
+        currency: 'COP'
     }).format(amount);
 };
 
