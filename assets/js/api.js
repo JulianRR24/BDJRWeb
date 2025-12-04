@@ -26,8 +26,16 @@ export async function apiRequest(endpoint, method = "GET", data = null) {
     const responseData = await response.json();
 
     if (!response.ok) {
+      // Log detallado para depuración (por ejemplo, errores de Mercado Pago)
+      console.error("API Response Error:", {
+        endpoint,
+        status: response.status,
+        data: responseData,
+      });
+
       throw new Error(
         responseData.error?.message ||
+          responseData.message ||
           responseData.error ||
           "API Request Failed"
       );

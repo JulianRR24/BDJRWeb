@@ -33,13 +33,9 @@
                 <!-- Summary -->
                 <div class="card h-fit">
                     <h2 class="card-title mb-4">Resumen</h2>
-                    <div class="flex justify-between mb-2">
+                    <div class="flex justify-between mb-4">
                         <span class="text-secondary">Subtotal</span>
                         <span id="cart-subtotal">$0.00</span>
-                    </div>
-                    <div class="flex justify-between mb-4">
-                        <span class="text-secondary">Impuestos (IVA 19%)</span>
-                        <span id="cart-tax">$0.00</span>
                     </div>
                     <div class="flex justify-between mb-4 pt-4 border-t border-gray-700 font-bold text-lg">
                         <span>Total</span>
@@ -126,11 +122,9 @@
 
         const updateTotals = () => {
             const subtotal = cart.getTotal();
-            const tax = subtotal * 0.19;
-            const total = subtotal + tax;
+            const total = subtotal; // Sin IVA adicional
 
             document.getElementById('cart-subtotal').textContent = formatCurrency(subtotal);
-            document.getElementById('cart-tax').textContent = formatCurrency(tax);
             document.getElementById('cart-total').textContent = formatCurrency(total);
         };
 

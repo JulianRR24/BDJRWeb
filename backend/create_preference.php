@@ -1,7 +1,6 @@
 <?php
 // backend/create_preference.php
 require_once 'config.php';
-require_once 'config.php';
 
 // Check for Composer autoloader in common locations
 $autoloadPaths = [
@@ -26,6 +25,7 @@ if (!$autoloadFound) {
 
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient;
+use MercadoPago\Exceptions\MPApiException;
 
 header('Content-Type: application/json');
 
@@ -60,20 +60,44 @@ try {
     $preference = $client->create([
         "items" => $preferenceItems,
         "payer" => [
-            "email" => $user['email'] ?? 'test_user_123@testuser.com', // Fallback for testing
+            "email" => $user['email'] ?? 'test_user_123@testuser.com', // Fallback para pruebas
         ],
         "back_urls" => [
             "success" => "http://localhost/bdjr-web/dashboard.html?status=success",
             "failure" => "http://localhost/bdjr-web/cart.html?status=failure",
             "pending" => "http://localhost/bdjr-web/cart.html?status=pending"
         ],
-        "auto_return" => "approved",
+        // auto_return no es necesario para Wallet Brick; lo quitamos para evitar invalid_auto_return
     ]);
 
     echo json_encode(['id' => $preference->id]);
 
-} catch (Exception $e) {
+} catch (MPApiException $e) {
+    // Errores devueltos por la API de Mercado Pago (datos inválidos, credenciales, etc.)
+    $apiResponse = $e->getApiResponse();
+
+    // MPResponse es un objeto, no un array
+    $statusCode = method_exists($apiResponse, 'getStatusCode')
+        ? $apiResponse->getStatusCode()
+        : null;
+
+    $body = method_exists($apiResponse, 'getContent')
+        ? $apiResponse->getContent()
+        : null;
+
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode([
+        'error'   => 'Mercado Pago API error',
+        'status'  => $statusCode,
+        'body'    => $body,
+        'message' => $e->getMessage(),
+    ]);
+} catch (Exception $e) {
+    // Otros errores de PHP
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Internal server error',
+        'message' => $e->getMessage(),
+    ]);
 }
 ?>
