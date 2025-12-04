@@ -46,29 +46,24 @@
                         <span id="cart-total">$0.00</span>
                     </div>
                     
-                    <!-- PayU Button -->
-                    <div class="text-center mt-4">
-                        <a href="https://biz.payulatam.com/B0f9701CE995DA2" target="_blank" class="block w-full mb-4">
-                            <img src="https://ecommerce.payulatam.com/img-secure-2015/boton_pagar_grande.png" alt="Pagar con PayU" style="width: 100%; max-width: 200px; margin: 0 auto;">
-                        </a>
-                        
-                        <!-- Mercado Pago Button -->
-                        <a href="https://link.mercadopago.com.co/capacitacionulp" target="_blank" class="btn btn-primary w-full block" style="background-color: #009EE3; border-color: #009EE3; color: white; padding: 12px; border-radius: 4px; font-weight: bold; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <span>Pagar con Mercado Pago</span>
-                        </a>
-
-                        <p class="text-xs text-muted mt-4">Pagos seguros procesados por PayU y Mercado Pago</p>
-                    </div>
+                    <!-- Mercado Pago Container -->
+                    <div id="walletBrick_container"></div>
+                    <div id="mp-loader" class="text-center text-muted hidden">Cargando pasarela de pago...</div>
                 </div>
             </div>
 
         </main>
     </div>
     <script type="module" src="assets/js/app.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script type="module">
         import { cart } from './assets/js/cart.js';
         import { apiRequest } from './assets/js/api.js';
         import { isAuthenticated, getCurrentUser } from './assets/js/auth.js';
+
+        const mp = new MercadoPago('APP_USR-7e265cdb-bbb5-42c8-9ae1-c98afd27dd18', {
+            locale: 'es-CO'
+        });
 
         const formatCurrency = (amount) => {
             return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(amount);
@@ -86,6 +81,7 @@
                     </div>
                 `;
                 updateTotals();
+                document.getElementById('walletBrick_container').innerHTML = ''; // Clear payment button
                 return;
             }
 
@@ -122,12 +118,10 @@
                         `).join('')}
                     </tbody>
                 </table>
-                <div class="mt-4 text-right">
-                    <button id="checkout-btn" class="btn btn-success">Finalizar Compra</button>
-                </div>
             `;
             
             updateTotals();
+            initMercadoPago(); // Re-init payment button when cart changes
         };
 
         const updateTotals = () => {
@@ -140,10 +134,59 @@
             document.getElementById('cart-total').textContent = formatCurrency(total);
         };
 
+        let bricksBuilder = null;
+
+        const initMercadoPago = async () => {
+            if (cart.items.length === 0) return;
+            if (!isAuthenticated()) {
+                document.getElementById('walletBrick_container').innerHTML = `
+                    <div class="text-center p-4 bg-bg-card rounded border border-border">
+                        <p class="mb-2">Inicia sesión para finalizar tu compra</p>
+                        <a href="login.html" class="btn btn-primary btn-sm">Iniciar Sesión</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const loader = document.getElementById('mp-loader');
+            loader.classList.remove('hidden');
+
+            try {
+                // 1. Create Preference on Backend
+                const user = getCurrentUser();
+                const response = await apiRequest('create_preference.php', 'POST', {
+                    items: cart.items,
+                    user: user
+                });
+
+                if (response.id) {
+                    // 2. Render Wallet Brick
+                    if (!bricksBuilder) bricksBuilder = mp.bricks();
+                    
+                    document.getElementById('walletBrick_container').innerHTML = ''; // Clear previous
+                    await bricksBuilder.create("wallet", "walletBrick_container", {
+                        initialization: {
+                            preferenceId: response.id,
+                        },
+                        customization: {
+                            texts: {
+                                valueProp: 'security_details',
+                            },
+                        },
+                    });
+                }
+            } catch (error) {
+                console.error('Error init MP:', error);
+                document.getElementById('walletBrick_container').innerHTML = '<div class="text-danger text-center">Error al cargar pasarela.</div>';
+            } finally {
+                loader.classList.add('hidden');
+            }
+        };
+
         // Event Listeners
         document.getElementById('cart-items').addEventListener('change', (e) => {
             if (e.target.classList.contains('qty-input')) {
-                const id = e.target.dataset.id; // ID is string (UUID)
+                const id = e.target.dataset.id;
                 const qty = parseInt(e.target.value);
                 cart.updateQuantity(id, qty);
                 renderCart();
@@ -155,41 +198,6 @@
                 const id = e.target.dataset.id;
                 cart.remove(id);
                 renderCart();
-            }
-            
-            if (e.target.id === 'checkout-btn') {
-                console.log('Auth State:', isAuthenticated(), getCurrentUser()); // Debug
-                
-                if (!isAuthenticated()) {
-                    alert('Debes iniciar sesión para comprar.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                const user = getCurrentUser();
-                const total = cart.getTotal() * 1.19; // Including tax
-
-                const orderData = {
-                    user_id: user.id,
-                    total_amount: total,
-                    shipping_address: "Dirección de prueba", // In a real app, ask for this
-                    items: cart.items
-                };
-
-                try {
-                    e.target.textContent = 'Procesando...';
-                    e.target.disabled = true;
-                    
-                    await apiRequest('orders.php', 'POST', orderData);
-                    
-                    alert('¡Pedido realizado con éxito!');
-                    cart.clear();
-                    window.location.href = 'dashboard.html'; // Redirect to dashboard
-                } catch (error) {
-                    alert('Error al procesar el pedido: ' + error.message);
-                    e.target.textContent = 'Finalizar Compra';
-                    e.target.disabled = false;
-                }
             }
         });
 

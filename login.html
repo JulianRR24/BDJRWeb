@@ -90,27 +90,41 @@
 
       form.addEventListener("submit", async (e) => {
           e.preventDefault();
+          console.log("Form submitted"); // Debug
+          
           const email = e.target.querySelector('input[type="email"]').value;
           const password = e.target.querySelector('input[type="password"]').value;
           const mode = modeInput.value;
           const originalText = submitBtn.textContent;
+
+          console.log("Mode:", mode, "Email:", email); // Debug
 
           try {
             submitBtn.textContent = "Procesando...";
             submitBtn.disabled = true;
 
             if (mode === 'login') {
-                await login(email, password);
+                console.log("Attempting login..."); // Debug
+                const user = await login(email, password);
+                console.log("Login successful, user:", user); // Debug
+                
+                // Verify storage
+                console.log("Token in storage:", localStorage.getItem('supabase_token'));
+                
+                alert("Login correcto. Redirigiendo...");
                 window.location.href = "index.html";
             } else {
+                console.log("Attempting register..."); // Debug
                 const result = await register(email, password);
+                console.log("Register result:", result); // Debug
+                
                 if (result.error) throw new Error(result.error.message || "Error al registrarse");
                 alert("Registro exitoso. Por favor inicia sesión.");
                 switchTab('login');
             }
           } catch (error) {
+            console.error("Auth error:", error); // Debug
             alert("Error: " + (error.message || "Ocurrió un error inesperado"));
-            console.error(error);
           } finally {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
