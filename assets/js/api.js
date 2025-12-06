@@ -1,6 +1,6 @@
 // assets/js/api.js
 
-const API_BASE_URL = "http://localhost/bdjr-web/backend"; // Adjust if your folder name is different
+const API_BASE_URL = "/backend";
 
 export async function apiRequest(endpoint, method = "GET", data = null) {
   const headers = {
