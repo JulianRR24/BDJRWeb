@@ -1,6 +1,6 @@
 // assets/js/api.js
 
-const API_BASE_URL = "/backend";
+const API_BASE_URL = "backend";
 
 export async function apiRequest(endpoint, method = "GET", data = null) {
   const headers = {
